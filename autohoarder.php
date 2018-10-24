@@ -46,11 +46,6 @@ class Autohoarder {
 	 * Try to autoload from cache.
 	 */
 	public static function autoload( $class_name, $extensions = null ) {
-		if ( $class_name == 'Korobochkin\WPKit\Plugins\AbstractPlugin' ) {
-			var_dump( spl_autoload_functions() );
-			exit;
-		}
-
 		if ( ! isset( self::$cache[ $class_name ] ) ) {
 			self::$busted []= $class_name;
 			return;
