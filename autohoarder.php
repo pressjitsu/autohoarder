@@ -40,25 +40,8 @@ class Autohoarder {
 			include self::$cache_file;
 			self::$cache = &$_cache;
 		}
-	}
 
-	/**
-	 * Try to autoload from cache.
-	 */
-	public static function autoload( $class_name, $extensions = null ) {
-		if ( ! isset( self::$cache[ $class_name ] ) ) {
-			self::$busted []= $class_name;
-			return;
-		}
-
-		$class_file = self::$cache[ $class_name ];
-
-		if ( ! file_exists( self::$cache[ $class_name ] ) ) {
-			self::$busted []= $class_name;
-			return;
-		}
-
-		require_once $class_file;
+		register_shutdown_function( array( __CLASS__, 'store' ) );
 	}
 
 	/**
@@ -83,24 +66,25 @@ class Autohoarder {
 	}
 
 	/**
-	 * Remove autoloader prepends.
-	 *
-	 * We need to be infront of all.
-	 * Wrap your autoloader calls with \Pressjitsu\Autohoarder::hoard.
+	 * Wrap and cache :)
 	 */
-	public static function hoard( $loader ) {
-		switch ( get_class( $loader ) ):
-			case 'Composer\Autoload\ClassLoader':
-				$loader->unregister();
-				$loader->register( false );
-				break;
-		endswitch;
+	public static function hoard( callable $callback ) {
+		return function( $class_name ) use ( $callback ) {
+			if ( ! isset( self::$cache[ $class_name ] ) ) {
+				self::$busted []= $class_name;
+				return $callback( $class_name );
+			}
 
-		return $loader;
+			$class_file = self::$cache[ $class_name ];
+
+			if ( ! file_exists( self::$cache[ $class_name ] ) ) {
+				self::$busted []= $class_name;
+				return $callback( $class_name );
+			}
+
+			require_once $class_file;
+		};
 	}
 }
 
 Autohoarder::init();
-
-spl_autoload_register( '\Pressjitsu\Autohoarder::autoload', true, true );
-register_shutdown_function( '\Pressjitsu\Autohoarder::store' );
